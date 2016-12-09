@@ -14,6 +14,12 @@
 #include <stdio.h>
 #include <memory.h>
 #include <string.h>
+#include <fcntl.h>
+#include <unistd.h>
+
+#include <sys/types.h>
+#include <sys/stat.h>
+#include <sys/mman.h>
 
 #include "argconfig.h"
 #include "sha256.h"
@@ -26,14 +32,14 @@ struct config {
 };
 
 static const struct config defaults = {
-  .file = NULL,
+    .file = NULL,
 };
 
 static const struct argconfig_commandline_options command_line_options[] = {
-  {"f",    "STRING", CFG_STRING, &defaults.file, required_argument, NULL},
-  {"file", "STRING", CFG_STRING, &defaults.file, required_argument,
-   "a file with input data for the SHA-256 encoder."},
-    {0}
+    {"f",    "STRING", CFG_STRING, &defaults.file, required_argument, NULL},
+    {"file", "STRING", CFG_STRING, &defaults.file, required_argument,
+     "a file with input data for the SHA-256 encoder."},
+      {0}
 };
 
 int sha256_test()
@@ -71,6 +77,32 @@ int sha256_test()
 	return(pass);
 }
 
+int sha256_file(char *file)
+{
+  int fd = open(file, O_RDONLY);
+
+  struct stat buf;
+  fstat(fd, &buf);
+
+  SHA256_CTX ctx;
+  BYTE sha256[SHA256_BLOCK_SIZE];
+
+  void *addr;
+
+  printf("Hello\n");
+
+  addr = mmap(NULL, buf.st_size, PROT_READ, MAP_SHARED,
+                  fd, 0);
+
+	sha256_init(&ctx);
+	sha256_update(&ctx, addr, buf.st_size-1);
+	sha256_final(&ctx, sha256);
+
+	for (unsigned i=0;i<SHA256_BLOCK_SIZE;i++)
+	  printf("%d\t0x%02x\n",i, sha256[i]);
+  
+}
+
 
 int main (int argc, char *argv[])
 {
@@ -81,8 +113,9 @@ int main (int argc, char *argv[])
 
 	if (cfg.file == NULL)
 	  printf("SHA-256 tests: %s\n", sha256_test() ? "SUCCEEDED" : "FAILED");
-	else
-	  printf("Hello\n");
-	
+	else {
+	  printf("SHA-256 on file: %s\n", cfg.file);
+	  sha256_file(cfg.file);
+		 }
 	return(0);
 }
