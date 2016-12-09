@@ -11,13 +11,31 @@
 	          example usage of the functions.
 *********************************************************************/
 
-/*************************** HEADER FILES ***************************/
 #include <stdio.h>
 #include <memory.h>
 #include <string.h>
+
+#include "argconfig.h"
 #include "sha256.h"
 
-/*********************** FUNCTION DEFINITIONS ***********************/
+const char program_desc[]  =
+    "Perform simple IO testing on the AFU";
+
+struct config {
+    char *file;
+};
+
+static const struct config defaults = {
+  .file = NULL,
+};
+
+static const struct argconfig_commandline_options command_line_options[] = {
+  {"f",    "STRING", CFG_STRING, &defaults.file, required_argument, NULL},
+  {"file", "STRING", CFG_STRING, &defaults.file, required_argument,
+   "a file with input data for the SHA-256 encoder."},
+    {0}
+};
+
 int sha256_test()
 {
 	BYTE text1[] = {"abc"};
@@ -53,9 +71,18 @@ int sha256_test()
 	return(pass);
 }
 
-int main()
-{
-	printf("SHA-256 tests: %s\n", sha256_test() ? "SUCCEEDED" : "FAILED");
 
+int main (int argc, char *argv[])
+{
+  struct config cfg;
+
+        argconfig_parse(argc, argv, program_desc, command_line_options,
+                    &defaults, &cfg, sizeof(cfg));
+
+	if (cfg.file == NULL)
+	  printf("SHA-256 tests: %s\n", sha256_test() ? "SUCCEEDED" : "FAILED");
+	else
+	  printf("Hello\n");
+	
 	return(0);
 }
